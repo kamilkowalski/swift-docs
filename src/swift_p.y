@@ -3,13 +3,21 @@
 #include <stdio.h>
 extern void yyerror(char* errmsg);
 extern int yylex();
+void print_node_info(Node* node, int ilevel);
+void log_indent(char* string, int level);
+Node* root_node;
+Node* current_node;
 %}
 %token <sval> IDENTIFIER
 %token AND ARROW ASSIGN BOOLEAN BREAK CASE CLASS COMPARISON CONTINUE DEFAULT DYNAMIC ELSE
 %token FINAL FLOAT FOR FUNC GET GUARD IF IMPORT IN INT LET NOT OR OVERRIDE
 %token PRIVATE PUBLIC REPEAT RETURN SET STATIC STRING SWITCH THROW TRY VAR WHILE
 
+%type <nval> class_declaration
+%type <sval> class_name
+
 %union {
+  Node* nval;
   char* sval;
 }
 %%
@@ -160,7 +168,7 @@ declaration: import_declaration
            | constant_declaration
            | variable_declaration
            | function_declaration
-           | class_declaration
+           | class_declaration { append_node(current_node, $1); }
            ;
 import_declaration: IMPORT IDENTIFIER
                   ;
@@ -236,12 +244,20 @@ function_result: ARROW type
                ;
 function_body: code_block
              ;
-class_declaration: access_level_modifier CLASS class_name class_inheritance_clause class_body
-                 | access_level_modifier CLASS class_name class_body
-                 | CLASS class_name class_inheritance_clause class_body
-                 | CLASS class_name class_body
+class_declaration: access_level_modifier CLASS class_name class_inheritance_clause class_body {
+                   $$ = make_node(N_CLASS, $3);
+                 }
+                 | access_level_modifier CLASS class_name class_body {
+                   $$ = make_node(N_CLASS, $3);
+                 }
+                 | CLASS class_name class_inheritance_clause class_body {
+                   $$ = make_node(N_CLASS, $2);
+                 }
+                 | CLASS class_name class_body {
+                   $$ = make_node(N_CLASS, $2);
+                 }
                  ;
-class_name: IDENTIFIER
+class_name: IDENTIFIER { $$ = $1 }
           ;
 class_inheritance_clause: ':' IDENTIFIER
                         ;
@@ -272,8 +288,60 @@ int main(int argc, char** argv) {
   extern FILE* yyin;
   char* source = argv[1];
   printf("Parsing file %s\n", source);
+
+  root_node = make_node(N_ROOT, source);
+  current_node = root_node;
+
   yyin=fopen(source, "r");
   yyparse();
 
+  print_node_info(root_node, 0);
+
   return 0;
+}
+
+void print_node_info(Node* node, int ilevel) {
+  switch(node->type) {
+    case N_CLASS:
+      log_indent("Class node", ilevel);
+      break;
+    case N_CONSTANT:
+      log_indent("Constant node", ilevel);
+      break;
+    case N_FUNCTION:
+      log_indent("Function node", ilevel);
+      break;
+    case N_ROOT:
+      log_indent("Root node", ilevel);
+      break;
+    case N_VARIABLE:
+      log_indent("Variable node", ilevel);
+      break;
+  }
+
+  log_indent("Name:", ilevel+1);
+  log_indent(node->name, ilevel+2);
+
+  if (node->first_child) {
+    log_indent("Children:", ilevel+1);
+    Node* current = node->first_child;
+
+    while(current) {
+      print_node_info(current, ilevel+2);
+      current = node->next;
+    }
+  }
+
+  if (node->next) {
+    print_node_info(node->next, ilevel);
+  }
+}
+
+void log_indent(char* string, int level) {
+  for(int i = 0; i < level; i++) {
+    putchar(' ');
+    putchar(' ');
+  }
+
+  printf("%s\n", string);
 }

@@ -21,5 +21,5 @@ build/swift_s.c :    src/swift_s.l
 		flex -I -obuild/swift_s.c src/swift_s.l
 
 clean:
-		rm -f build/swift*
+		rm -f build/{swift,docgen}*
 		rm -f swift

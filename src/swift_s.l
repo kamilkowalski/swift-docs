@@ -1,9 +1,10 @@
 %{
-  #include "swift_p.h"
-  #include <stdio.h>
-  #include <string.h>
-  void yyerror(char* s);
-  void copy_string_value();
+#include "docgen.h"
+#include "swift_p.h"
+#include <stdio.h>
+#include <string.h>
+void yyerror(char* s);
+void copy_string_value();
 %}
 %%
 \n                            { yylineno++; }

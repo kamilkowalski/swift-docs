@@ -1,16 +1,19 @@
 #include "docgen.h"
+#include <string.h>
 
-Node* makeNode(node_t node_type, char* node_name) {
+Node* make_node(node_t node_type, char* node_name) {
   Node* node = (Node*) malloc(sizeof(Node));
+  node->name = (char*) malloc(strlen(node_name) + 1);
+  strcpy(node->name, node_name);
+
   node->type = node_type;
-  node->name = node_name;
   node->next = 0;
   node->first_child = 0;
 
   return node;
 }
 
-void appendNode(Node* parent, Node* child) {
+void append_node(Node* parent, Node* child) {
   child->next = 0;
 
   if(parent->first_child) {
