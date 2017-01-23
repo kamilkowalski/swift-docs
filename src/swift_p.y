@@ -5,19 +5,24 @@ extern void yyerror(char* errmsg);
 extern int yylex();
 void print_node_info(Node* node, int ilevel);
 void log_indent(char* string, int level);
+void cl_make_switch(char* name);
+
 Node* root_node;
 Node* current_node;
+
 %}
 %token <sval> IDENTIFIER
 %token AND ARROW ASSIGN BOOLEAN BREAK CASE CLASS COMPARISON CONTINUE DEFAULT DYNAMIC ELSE
 %token FINAL FLOAT FOR FUNC GET GUARD IF IMPORT IN INT LET NOT OR OVERRIDE
 %token PRIVATE PUBLIC REPEAT RETURN SET STATIC STRING SWITCH THROW TRY VAR WHILE
 
-%type <nval> class_declaration
-%type <sval> class_name
+%type <nval> constant_declaration function_declaration variable_declaration
+%type <sval> array_type class_name dictionary_type optional_type type type_annotation wildcard_pattern
+%type <pval> pattern pattern_initializer
 
 %union {
   Node* nval;
+  Pattern* pval;
   char* sval;
 }
 %%
@@ -165,25 +170,27 @@ declarations: declaration
             | declaration declarations
             ;
 declaration: import_declaration
-           | constant_declaration
-           | variable_declaration
-           | function_declaration
-           | class_declaration { append_node(current_node, $1); }
+           | constant_declaration { append_node(current_node, $1); }
+           | variable_declaration { append_node(current_node, $1); }
+           | function_declaration { append_node(current_node, $1); }
+           | class_declaration { current_node = current_node->parent; }
            ;
 import_declaration: IMPORT IDENTIFIER
                   ;
-constant_declaration: declaration_modifiers LET pattern_initializer
-                    | LET pattern_initializer
+constant_declaration: declaration_modifiers LET pattern_initializer {
+                      $$ = make_node(N_CONSTANT, $3->name);
+                    }
+                    | LET pattern_initializer { $$ = make_node(N_CONSTANT, $2->name); }
                     ;
-pattern_initializer: pattern initializer
-                   | pattern
+pattern_initializer: pattern initializer { $$ = $1; }
+                   | pattern { $$ = $1; }
                    ;
-pattern: wildcard_pattern type_annotation
-       | IDENTIFIER type_annotation
-       | wildcard_pattern
-       | IDENTIFIER
+pattern: wildcard_pattern type_annotation { $$ = make_full_pattern($1, $2); }
+       | IDENTIFIER type_annotation { $$ = make_full_pattern($1, $2); }
+       | wildcard_pattern { $$ = make_pattern($1); }
+       | IDENTIFIER { $$ = make_pattern($1); }
        ;
-wildcard_pattern: '_'
+wildcard_pattern: '_' { $$ = "_"; }
                 ;
 declaration_modifiers: declaration_modifier
                      | declaration_modifier declaration_modifiers
@@ -198,14 +205,20 @@ declaration_modifier: access_level_modifier
 access_level_modifier: PRIVATE
                      | PUBLIC
                      ;
-variable_declaration: variable_declaration_head pattern_initializer
-                    | variable_declaration_head IDENTIFIER type_annotation code_block
-                    | variable_declaration_head IDENTIFIER type_annotation getter_setter_block
+variable_declaration: variable_declaration_head pattern_initializer {
+                      $$ = make_node(N_VARIABLE, $2->name);
+                    }
+                    | variable_declaration_head IDENTIFIER type_annotation code_block {
+                      $$ = make_node(N_VARIABLE, $2);
+                    }
+                    | variable_declaration_head IDENTIFIER type_annotation getter_setter_block {
+                      $$ = make_node(N_VARIABLE, $2);
+                    }
                     ;
 variable_declaration_head: declaration_modifiers VAR
                          | VAR
                          ;
-type_annotation: ':' type
+type_annotation: ':' type { $$ = $2; }
                ;
 getter_setter_block: '{' getter_clause setter_clause '}'
                    | '{' getter_clause '}'
@@ -215,8 +228,12 @@ getter_clause: GET code_block
              ;
 setter_clause: SET code_block
              ;
-function_declaration: function_head IDENTIFIER function_signature function_body
-                    | function_head IDENTIFIER function_signature
+function_declaration: function_head IDENTIFIER function_signature function_body {
+                      $$ = make_node(N_FUNCTION, $2);
+                    }
+                    | function_head IDENTIFIER function_signature {
+                      $$ = make_node(N_FUNCTION, $2);
+                    }
                     ;
 function_head: declaration_modifiers FUNC
              | FUNC
@@ -244,18 +261,10 @@ function_result: ARROW type
                ;
 function_body: code_block
              ;
-class_declaration: access_level_modifier CLASS class_name class_inheritance_clause class_body {
-                   $$ = make_node(N_CLASS, $3);
-                 }
-                 | access_level_modifier CLASS class_name class_body {
-                   $$ = make_node(N_CLASS, $3);
-                 }
-                 | CLASS class_name class_inheritance_clause class_body {
-                   $$ = make_node(N_CLASS, $2);
-                 }
-                 | CLASS class_name class_body {
-                   $$ = make_node(N_CLASS, $2);
-                 }
+class_declaration: access_level_modifier CLASS class_name { cl_make_switch($3); } class_inheritance_clause class_body
+                 | access_level_modifier CLASS class_name { cl_make_switch($3); } class_body
+                 | CLASS class_name { cl_make_switch($2); } class_inheritance_clause class_body
+                 | CLASS class_name { cl_make_switch($2); } class_body
                  ;
 class_name: IDENTIFIER { $$ = $1 }
           ;
@@ -267,16 +276,16 @@ class_body: '{' '}'
 code_block: '{' '}'
           | '{' statements '}'
           ;
-type: array_type
-    | dictionary_type
-    | optional_type
-    | IDENTIFIER
+type: array_type { $$ = $1; }
+    | dictionary_type { $$ = $1; }
+    | optional_type { $$ = $1; }
+    | IDENTIFIER { $$ = $1; }
     ;
-array_type: '[' type ']'
+array_type: '[' type ']' { $$ = $2; }
           ;
-dictionary_type: '[' type ':' type ']'
+dictionary_type: '[' type ':' type ']' { $$ = $2; }
                ;
-optional_type: type '?'
+optional_type: type '?' { $$ = $1; }
              ;
 literal: STRING
        | INT
@@ -344,4 +353,10 @@ void log_indent(char* string, int level) {
   }
 
   printf("%s\n", string);
+}
+
+void cl_make_switch(char* name) {
+  Node* cl = make_node(N_CLASS, name);
+  append_node(current_node, cl);
+  current_node = cl;
 }
