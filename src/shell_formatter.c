@@ -1,15 +1,31 @@
 #include "shell_formatter.h"
 #include <stdio.h>
 
-void print_children_info(Node* parent, int ilevel) {
-  if (parent->first_child) {
-    log_indent("Children:", ilevel);
-    Node* current = parent->first_child;
+void print_class_info(Node* class, int ilevel);
+void print_constant_info(Node* constant, int ilevel);
+void print_variable_info(Node* variable, int ilevel);
+void print_function_info(Node* function, int ilevel);
+void print_root_info(Node* root, int ilevel);
+void print_children_info(Node* parent, int ilevel);
+void log_indent(char* string, int level);
 
-    while(current) {
-      print_node_info(current, ilevel+1);
-      current = current->next;
-    }
+void print_node_info(Node* node, int ilevel) {
+  switch(node->type) {
+    case N_CLASS:
+      print_class_info(node, ilevel);
+      break;
+    case N_CONSTANT:
+      print_constant_info(node, ilevel);
+      break;
+    case N_FUNCTION:
+      print_function_info(node, ilevel);
+      break;
+    case N_ROOT:
+      print_root_info(node, ilevel);
+      break;
+    case N_VARIABLE:
+      print_variable_info(node, ilevel);
+      break;
   }
 }
 
@@ -45,23 +61,15 @@ void print_root_info(Node* root, int ilevel) {
   print_children_info(root, ilevel+1);
 }
 
-void print_node_info(Node* node, int ilevel) {
-  switch(node->type) {
-    case N_CLASS:
-      print_class_info(node, ilevel);
-      break;
-    case N_CONSTANT:
-      print_constant_info(node, ilevel);
-      break;
-    case N_FUNCTION:
-      print_function_info(node, ilevel);
-      break;
-    case N_ROOT:
-      print_root_info(node, ilevel);
-      break;
-    case N_VARIABLE:
-      print_variable_info(node, ilevel);
-      break;
+void print_children_info(Node* parent, int ilevel) {
+  if (parent->first_child) {
+    log_indent("Children:", ilevel);
+    Node* current = parent->first_child;
+
+    while(current) {
+      print_node_info(current, ilevel+1);
+      current = current->next;
+    }
   }
 }
 
