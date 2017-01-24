@@ -11,6 +11,8 @@ void write_function_info(Node* function, FILE* out);
 void write_root_info(Node* root, FILE* out);
 void write_variable_info(Node* variable, FILE* out);
 void write_class_child_type(Node* class, node_t type, FILE* out);
+void write_node_type(Node* typable, FILE* out);
+void write_type(Type* type, FILE* out);
 char* footer();
 
 char* readfile(char* filename);
@@ -115,6 +117,7 @@ void write_class_child_type(Node* class, node_t type, FILE* out) {
 
 void write_constant_info(Node* constant, FILE* out) {
   fprintf(out, "Constant <code>%s</code>", constant->name);
+  write_node_type(constant, out);
 }
 
 void write_function_info(Node* function, FILE* out) {
@@ -136,6 +139,37 @@ void write_root_info(Node* root, FILE* out) {
 
 void write_variable_info(Node* variable, FILE* out) {
   fprintf(out, "Variable <code>%s</code>", variable->name);
+  write_node_type(variable, out);
+}
+
+void write_node_type(Node* typable, FILE* out) {
+  if (typable->meta) {
+    fprintf(out, " : ");
+    write_type((Type*) typable->meta, out);
+  }
+}
+
+void write_type(Type* type, FILE* out) {
+  switch(type->category) {
+    case T_ARRAY:
+      fprintf(out, "[");
+      write_type(type->item_type, out);
+      fprintf(out, "]");
+      break;
+    case T_DICTIONARY:
+      fprintf(out, "[");
+      write_type(type->key_type, out);
+      fprintf(out, ":");
+      write_type(type->value_type, out);
+      fprintf(out, "]");
+      break;
+    case T_IDENTIFIER:
+      fprintf(out, "<code>%s</code>", type->identifier);
+      break;
+    case T_OPTIONAL:
+      write_type(type->item_type, out);
+      fprintf(out, "?");
+  }
 }
 
 char* readfile(char* filename) {
