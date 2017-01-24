@@ -121,7 +121,39 @@ void write_constant_info(Node* constant, FILE* out) {
 }
 
 void write_function_info(Node* function, FILE* out) {
-  fprintf(out, "Function <code>%s</code>", function->name);
+  if (function->meta) {
+    Function* fmeta = (Function*) function->meta;
+    fprintf(out, "<code>%s</code> (", function->name);
+
+    Param* current = fmeta->first_param;
+
+    while (current) {
+      if (current != fmeta->first_param) fprintf(out, ", ");
+
+      if (current->global_name) {
+        fprintf(out, "<code>%s</code> ", current->global_name);
+      }
+      if (current->local_name) {
+        fprintf(out, "<code>%s</code>", current->local_name);
+      }
+      if(current->type) {
+        fprintf(out, " : ");
+        write_type(current->type, out);
+      }
+
+      current = current->next;
+    }
+
+    fprintf(out, ")");
+
+    if (fmeta->result) {
+      fprintf(out, " -> ");
+      write_type(fmeta->result, out);
+    }
+
+  } else {
+    fprintf(out, "Function <code>%s</code>", function->name);
+  }
 }
 
 void write_root_info(Node* root, FILE* out) {
