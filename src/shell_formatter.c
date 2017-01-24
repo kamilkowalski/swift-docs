@@ -55,8 +55,45 @@ void print_variable_info(Node* variable, int ilevel) {
 
 void print_function_info(Node* function, int ilevel) {
   log_indent("Function node", ilevel);
-  log_indent("Name:", ilevel+1);
-  log_indent(function->name, ilevel+2);
+
+  if (function->meta) {
+    Function* fmeta = (Function*) function->meta;
+    log_indent("Signature:", ilevel+1);
+    indent(ilevel+2);
+    printf("%s", function->name);
+    putchar('(');
+
+    Param* current = fmeta->first_param;
+
+    while (current) {
+      if (current != fmeta->first_param) printf(", ");
+
+      if (current->global_name) {
+        printf("%s ", current->global_name);
+      }
+      if (current->local_name) {
+        printf("%s", current->local_name);
+      }
+      if(current->type) {
+        putchar(':');
+        print_type(current->type);
+      }
+
+      current = current->next;
+    }
+
+    putchar(')');
+
+    if (fmeta->result) {
+      printf(" -> ");
+      print_type(fmeta->result);
+    }
+
+    puts("");
+  } else {
+    log_indent("Name:", ilevel+1);
+    log_indent(function->name, ilevel+2);
+  }
 }
 
 void print_root_info(Node* root, int ilevel) {

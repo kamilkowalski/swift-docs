@@ -5,9 +5,16 @@
 typedef enum {N_CLASS, N_CONSTANT, N_FUNCTION, N_ROOT, N_VARIABLE} node_t;
 typedef enum {T_ARRAY, T_DICTIONARY, T_IDENTIFIER, T_OPTIONAL} type_t;
 
+typedef struct Function Function;
 typedef struct Node Node;
+typedef struct Param Param;
 typedef struct Pattern Pattern;
 typedef struct Type Type;
+
+struct Function {
+  Type* result;
+  Param* first_param;
+};
 
 struct Node {
   node_t type;
@@ -16,6 +23,13 @@ struct Node {
   Node* next;
   Node* first_child;
   Node* parent;
+};
+
+struct Param {
+  char* global_name;
+  char* local_name;
+  Type* type;
+  Param* next;
 };
 
 struct Pattern {
@@ -42,5 +56,8 @@ Type* make_identifier_type(char* identifier);
 Type* make_array_type(Type* item_type);
 Type* make_optional_type(Type* item_type);
 Type* make_dictionary_type(Type* key_type, Type* value_type);
+
+Function* make_function(Param* first_param, Type* result);
+Param* make_param(char* global_name, char* local_name, Type* type);
 
 #endif

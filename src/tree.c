@@ -78,3 +78,25 @@ Type* make_dictionary_type(Type* key_type, Type* value_type) {
   t->value_type = value_type;
   return t;
 }
+
+Function* make_function(Param* first_param, Type* result) {
+  Function* func = (Function*) malloc(sizeof(Function));
+  func->result = result;
+  func->first_param = first_param;
+  return func;
+}
+
+Param* make_param(char* global_name, char* local_name, Type* type) {
+  Param* param = (Param*) malloc(sizeof(Param));
+
+  param->global_name = (char*) malloc(strlen(global_name) + 1);
+  strcpy(param->global_name, global_name);
+
+  param->local_name = (char*) malloc(strlen(local_name) + 1);
+  strcpy(param->local_name, local_name);
+
+  param->type = type;
+  param->next = 0;
+
+  return param;
+}

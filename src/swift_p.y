@@ -15,13 +15,17 @@ Node* current_node;
 %token FINAL FLOAT FOR FUNC GET GUARD IF IMPORT IN INT LET NOT OR OVERRIDE
 %token PRIVATE PUBLIC REPEAT RETURN SET STATIC STRING SWITCH THROW TRY VAR WHILE
 
+%type <fval> function_signature
 %type <nval> constant_declaration function_declaration variable_declaration
-%type <sval> class_name wildcard_pattern
+%type <sval> class_name wildcard_pattern external_parameter_name local_parameter_name
+%type <prval> parameter_clause parameter_list parameter
 %type <pval> pattern pattern_initializer
-%type <tval> array_type dictionary_type optional_type type type_annotation
+%type <tval> array_type dictionary_type optional_type type type_annotation function_result
 
 %union {
+  Function* fval;
   Node* nval;
+  Param* prval;
   Pattern* pval;
   Type* tval;
   char* sval;
@@ -230,35 +234,37 @@ getter_clause: GET code_block
 setter_clause: SET code_block
              ;
 function_declaration: function_head IDENTIFIER function_signature function_body {
-                      $$ = make_node(N_FUNCTION, $2, (void*)0);
+                      $$ = make_node(N_FUNCTION, $2, $3);
                     }
                     | function_head IDENTIFIER function_signature {
-                      $$ = make_node(N_FUNCTION, $2, (void*)0);
+                      $$ = make_node(N_FUNCTION, $2, $3);
                     }
                     ;
 function_head: declaration_modifiers FUNC
              | FUNC
              ;
-function_signature: parameter_clause function_result
-                  | parameter_clause
+function_signature: parameter_clause function_result { $$ = make_function($1, $2); }
+                  | parameter_clause { $$ = make_function($1, (Type*)0); }
                   ;
-parameter_clause: '(' ')'
-                | '(' parameter_list ')'
+parameter_clause: '(' ')' { $$ = (Param*)0; }
+                | '(' parameter_list ')' { $$ = $2; }
                 ;
-parameter_list: parameter
-              | parameter ',' parameter_list
+parameter_list: parameter { $$ = $1; }
+              | parameter ',' parameter_list { $1->next = $3; $$ = $1;  }
               ;
-parameter: external_parameter_name local_parameter_name type_annotation default_argument_clause
-         | external_parameter_name local_parameter_name type_annotation
-         | local_parameter_name type_annotation
+parameter: external_parameter_name local_parameter_name type_annotation default_argument_clause {
+          $$ = make_param($1, $2, $3);
+         }
+         | external_parameter_name local_parameter_name type_annotation { $$ = make_param($1, $2, $3); }
+         | local_parameter_name type_annotation { $$ = make_param((char*)0, $1, $2); }
          ;
-external_parameter_name: IDENTIFIER
+external_parameter_name: IDENTIFIER { $$ = $1; }
                        ;
-local_parameter_name: IDENTIFIER
+local_parameter_name: IDENTIFIER { $$ = $1; }
                     ;
 default_argument_clause: ASSIGN expression
                        ;
-function_result: ARROW type
+function_result: ARROW type { $$ = $2; }
                ;
 function_body: code_block
              ;
