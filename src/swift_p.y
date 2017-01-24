@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
   yyin=fopen(source, "r");
   yyparse();
 
-  print_node_info(root_node, 0);
+  shell_format(root_node);
 
   return 0;
 }

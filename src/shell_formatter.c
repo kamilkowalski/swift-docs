@@ -1,6 +1,7 @@
 #include "shell_formatter.h"
 #include <stdio.h>
 
+void print_node_info(Node* node, int ilevel);
 void print_class_info(Node* class, int ilevel);
 void print_constant_info(Node* constant, int ilevel);
 void print_variable_info(Node* variable, int ilevel);
@@ -11,6 +12,10 @@ void print_node_type(Node* typable, int ilevel);
 void print_type(Type* type);
 void log_indent(char* string, int level);
 void indent(int level);
+
+void shell_format(Node* node) {
+  print_node_info(node, 0);
+}
 
 void print_node_info(Node* node, int ilevel) {
   switch(node->type) {
