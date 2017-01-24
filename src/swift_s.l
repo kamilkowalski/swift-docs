@@ -48,7 +48,7 @@ false                         { return BOOLEAN; }
 "="                           { return ASSIGN; }
 "->"                          { return ARROW; }
 [_/=\-\+!\*%<>&|^~?]          { return yytext[0]; }
-[:\(\)\{\}\[\]\.\;]           { return yytext[0]; }
+[:\(\)\{\}\[\]\.\,\;]         { return yytext[0]; }
 [0-9]+                        { return INT; }
 [0-9]+"."[0-9]+ |
 "."[0-9]+                     { return FLOAT; }

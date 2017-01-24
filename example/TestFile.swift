@@ -9,7 +9,13 @@ class TestClass {
     }
   }
 
-  func testFunction(global local: String) -> [Int] {
+  var testArray: [Int] = [5, 6, 7]
+
+  func testFunction(_ local: String, count cnt: Int) -> [Int] {
+    for id in testArray {
+      print(id)
+    }
+
     return [5]
   }
 }
