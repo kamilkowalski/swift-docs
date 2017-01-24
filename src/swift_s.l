@@ -1,5 +1,5 @@
 %{
-#include "docgen.h"
+#include "tree.h"
 #include "swift_p.h"
 #include <stdio.h>
 #include <string.h>

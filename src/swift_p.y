@@ -1,10 +1,9 @@
 %{
-#include "docgen.h"
+#include "tree.h"
+#include "shell_formatter.h"
 #include <stdio.h>
 extern void yyerror(char* errmsg);
 extern int yylex();
-void print_node_info(Node* node, int ilevel);
-void log_indent(char* string, int level);
 void cl_make_switch(char* name);
 
 Node* root_node;
@@ -17,12 +16,14 @@ Node* current_node;
 %token PRIVATE PUBLIC REPEAT RETURN SET STATIC STRING SWITCH THROW TRY VAR WHILE
 
 %type <nval> constant_declaration function_declaration variable_declaration
-%type <sval> array_type class_name dictionary_type optional_type type type_annotation wildcard_pattern
+%type <sval> class_name wildcard_pattern
 %type <pval> pattern pattern_initializer
+%type <tval> array_type dictionary_type optional_type type type_annotation
 
 %union {
   Node* nval;
   Pattern* pval;
+  Type* tval;
   char* sval;
 }
 %%
@@ -178,9 +179,9 @@ declaration: import_declaration
 import_declaration: IMPORT IDENTIFIER
                   ;
 constant_declaration: declaration_modifiers LET pattern_initializer {
-                      $$ = make_node(N_CONSTANT, $3->name);
+                      $$ = make_node(N_CONSTANT, $3->name, $3->type);
                     }
-                    | LET pattern_initializer { $$ = make_node(N_CONSTANT, $2->name); }
+                    | LET pattern_initializer { $$ = make_node(N_CONSTANT, $2->name, $2->type); }
                     ;
 pattern_initializer: pattern initializer { $$ = $1; }
                    | pattern { $$ = $1; }
@@ -206,13 +207,13 @@ access_level_modifier: PRIVATE
                      | PUBLIC
                      ;
 variable_declaration: variable_declaration_head pattern_initializer {
-                      $$ = make_node(N_VARIABLE, $2->name);
+                      $$ = make_node(N_VARIABLE, $2->name, $2->type);
                     }
                     | variable_declaration_head IDENTIFIER type_annotation code_block {
-                      $$ = make_node(N_VARIABLE, $2);
+                      $$ = make_node(N_VARIABLE, $2, $3);
                     }
                     | variable_declaration_head IDENTIFIER type_annotation getter_setter_block {
-                      $$ = make_node(N_VARIABLE, $2);
+                      $$ = make_node(N_VARIABLE, $2, $3);
                     }
                     ;
 variable_declaration_head: declaration_modifiers VAR
@@ -229,10 +230,10 @@ getter_clause: GET code_block
 setter_clause: SET code_block
              ;
 function_declaration: function_head IDENTIFIER function_signature function_body {
-                      $$ = make_node(N_FUNCTION, $2);
+                      $$ = make_node(N_FUNCTION, $2, (void*)0);
                     }
                     | function_head IDENTIFIER function_signature {
-                      $$ = make_node(N_FUNCTION, $2);
+                      $$ = make_node(N_FUNCTION, $2, (void*)0);
                     }
                     ;
 function_head: declaration_modifiers FUNC
@@ -279,13 +280,13 @@ code_block: '{' '}'
 type: array_type { $$ = $1; }
     | dictionary_type { $$ = $1; }
     | optional_type { $$ = $1; }
-    | IDENTIFIER { $$ = $1; }
+    | IDENTIFIER { $$ = make_identifier_type($1); }
     ;
-array_type: '[' type ']' { $$ = $2; }
+array_type: '[' type ']' { $$ = make_array_type($2); }
           ;
-dictionary_type: '[' type ':' type ']' { $$ = $2; }
+dictionary_type: '[' type ':' type ']' { $$ = make_dictionary_type($2, $4); }
                ;
-optional_type: type '?' { $$ = $1; }
+optional_type: type '?' { $$ = make_optional_type($1); }
              ;
 literal: STRING
        | INT
@@ -298,7 +299,7 @@ int main(int argc, char** argv) {
   char* source = argv[1];
   printf("Parsing file %s\n", source);
 
-  root_node = make_node(N_ROOT, source);
+  root_node = make_node(N_ROOT, source, (void*)0);
   current_node = root_node;
 
   yyin=fopen(source, "r");
@@ -309,54 +310,8 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-void print_node_info(Node* node, int ilevel) {
-  switch(node->type) {
-    case N_CLASS:
-      log_indent("Class node", ilevel);
-      break;
-    case N_CONSTANT:
-      log_indent("Constant node", ilevel);
-      break;
-    case N_FUNCTION:
-      log_indent("Function node", ilevel);
-      break;
-    case N_ROOT:
-      log_indent("Root node", ilevel);
-      break;
-    case N_VARIABLE:
-      log_indent("Variable node", ilevel);
-      break;
-  }
-
-  log_indent("Name:", ilevel+1);
-  log_indent(node->name, ilevel+2);
-
-  if (node->first_child) {
-    log_indent("Children:", ilevel+1);
-    Node* current = node->first_child;
-
-    while(current) {
-      print_node_info(current, ilevel+2);
-      current = node->next;
-    }
-  }
-
-  if (node->next) {
-    print_node_info(node->next, ilevel);
-  }
-}
-
-void log_indent(char* string, int level) {
-  for(int i = 0; i < level; i++) {
-    putchar(' ');
-    putchar(' ');
-  }
-
-  printf("%s\n", string);
-}
-
 void cl_make_switch(char* name) {
-  Node* cl = make_node(N_CLASS, name);
+  Node* cl = make_node(N_CLASS, name, (void*)0);
   append_node(current_node, cl);
   current_node = cl;
 }
