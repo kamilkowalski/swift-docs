@@ -1,7 +1,9 @@
 %{
 #include "tree.h"
 #include "shell_formatter.h"
+#include "html_formatter.h"
 #include <stdio.h>
+#include <string.h>
 extern void yyerror(char* errmsg);
 extern int yylex();
 void cl_make_switch(char* name);
@@ -311,7 +313,15 @@ int main(int argc, char** argv) {
   yyin=fopen(source, "r");
   yyparse();
 
+  fclose(yyin);
+
   shell_format(root_node);
+
+  char* ext = ".html";
+  char* output = (char*) malloc(strlen(source) + strlen(ext) + 1);
+  strcpy(output, source);
+  strcat(output, ext);
+  html_format(root_node, output);
 
   return 0;
 }
