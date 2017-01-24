@@ -12,6 +12,8 @@ Prosty generator dokumentacji dla języka Swift, stworzony w ramach zajęć *Aut
 
 ## Jak używać?
 
+Plik `Makefile` działa na macOS, ale powinien być kompatybilny z Linuxem po zmianie flagi `-ll` z wywołania `gcc` na flagę `-lfl`.
+
 ```
 cd swift-docs
 make
