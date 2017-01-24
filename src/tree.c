@@ -67,7 +67,9 @@ Type* make_array_type(Type* item_type) {
 }
 
 Type* make_optional_type(Type* item_type) {
-  return make_array_type(item_type);
+  Type* t = make_type(T_OPTIONAL);
+  t->item_type = item_type;
+  return t;
 }
 
 Type* make_dictionary_type(Type* key_type, Type* value_type) {

@@ -1,7 +1,7 @@
 import SomeLibrary
 
 class TestClass {
-  let testConstant = "Test string"
+  let testConstant: String = "Test string"
   var testVariable: Int?
   var testGetter: Float {
     get {
